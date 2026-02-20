@@ -29,6 +29,28 @@ def _organization_search_params(query: OrganizationSearchQuery) -> Dict[str, Any
     return params
 
 
+def _people_search_params(query: PeopleSearchQuery) -> Dict[str, Any]:
+    """Build query params for Apollo mixed_people/search (expects query string, not JSON body)."""
+    raw = query.model_dump(exclude_none=True)
+    array_keys = {
+        "person_titles",
+        "person_locations",
+        "person_seniorities",
+        "organization_locations",
+        "q_organization_domains_list",
+        "contact_email_status",
+        "organization_ids",
+        "organization_num_employees_ranges",
+    }
+    params: Dict[str, Any] = {}
+    for key, value in raw.items():
+        if key in array_keys and isinstance(value, list):
+            params[f"{key}[]"] = value
+        else:
+            params[key] = value
+    return params
+
+
 class ApolloClient:
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -44,10 +66,12 @@ class ApolloClient:
         """
         Use the People Enrichment endpoint to enrich data for 1 person.
         https://docs.apollo.io/reference/people-enrichment
+        Apollo expects query string parameters (not JSON body) for this POST endpoint.
         """
         url = f"{self.base_url}/people/match"
+        params = query.model_dump(exclude_none=True)
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=query.model_dump(), headers=self.headers)
+            response = await client.post(url, params=params, headers=self.headers)
             if response.status_code == 200:
                 return PeopleEnrichmentResponse(**response.json())
             else:
@@ -60,8 +84,9 @@ class ApolloClient:
         https://docs.apollo.io/reference/organization-enrichment
         """
         url = f"{self.base_url}/organizations/enrich"
+        params = query.model_dump(exclude_none=True)
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=query.model_dump(), headers=self.headers)
+            response = await client.get(url, params=params, headers=self.headers)
             if response.status_code == 200:
                 return OrganizationEnrichmentResponse(**response.json())
             else:
@@ -72,10 +97,12 @@ class ApolloClient:
         """
         Use the People Search endpoint to find people.
         https://docs.apollo.io/reference/people-search
+        Apollo expects query string parameters (not JSON body) for this POST endpoint.
         """
         url = f"{self.base_url}/mixed_people/search"
+        params = _people_search_params(query)
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=query.model_dump(), headers=self.headers)
+            response = await client.post(url, params=params, headers=self.headers)
             if response.status_code == 200:
                 return PeopleSearchResponse(**response.json())
             else:
