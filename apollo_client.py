@@ -1,7 +1,33 @@
-from typing import Optional
+from typing import Optional, List, Any, Dict
 import httpx
 
 from apollo import *
+
+
+def _organization_search_params(query: OrganizationSearchQuery) -> Dict[str, Any]:
+    """Build query params for Apollo mixed_companies/search (expects query string, not JSON body)."""
+    raw = query.model_dump(exclude_none=True)
+    # Apollo OpenAPI uses query params; array params use bracket notation e.g. organization_num_employees_ranges[]
+    array_keys = {
+        "organization_num_employees_ranges",
+        "organization_locations",
+        "organization_not_locations",
+        "currently_using_any_of_technology_uids",
+        "q_organization_keyword_tags",
+        "organization_ids",
+    }
+    params: Dict[str, Any] = {}
+    for key, value in raw.items():
+        if key in array_keys and isinstance(value, list):
+            params[f"{key}[]"] = value
+        elif key == "revenue_range_min":
+            params["revenue_range[min]"] = value
+        elif key == "revenue_range_max":
+            params["revenue_range[max]"] = value
+        else:
+            params[key] = value
+    return params
+
 
 class ApolloClient:
     def __init__(self, api_key: str):
@@ -60,10 +86,13 @@ class ApolloClient:
         """
         Use the Organization Search endpoint to find organizations.
         https://docs.apollo.io/reference/organization-search
+        Apollo expects query string parameters (not JSON body) for this POST endpoint.
         """
         url = f"{self.base_url}/mixed_companies/search"
+        # Apollo API expects query params; use bracket notation for array keys per OpenAPI spec
+        params = _organization_search_params(query)
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=query.model_dump(), headers=self.headers)
+            response = await client.post(url, params=params, headers=self.headers)
             if response.status_code == 200:
                 return OrganizationSearchResponse(**response.json())
             else:
