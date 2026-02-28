@@ -15,18 +15,14 @@ class OrganizationSearchQuery(BaseModel):
     per_page: Optional[int] = Field(default=None, description="The number of search results that should be returned for each page. Limited the number of results per page improves the endpoint's performance. Use the `page` parameter to search the different pages of data. Example: `10`")
 
 class Breadcrumb(BaseModel):
-    label: str = Field(description="label")
-    signal_field_name: str = Field(description="signal_field_name")
-    value: str = Field(description="value")
-    display_name: str = Field(description="display_name")
-
-class PrimaryPhone(BaseModel):
-    number: str = Field(description="number")
-    source: str = Field(description="source")
-    sanitized_number: str = Field(description="sanitized_number")
+    """Apollo may omit fields in breadcrumbs."""
+    label: Optional[str] = Field(default=None, description="label")
+    signal_field_name: Optional[str] = Field(default=None, description="signal_field_name")
+    value: Optional[str] = Field(default=None, description="value")
+    display_name: Optional[str] = Field(default=None, description="display_name")
 
 class Organization(BaseModel):
-    id: str = Field(description="id")
+    id: Optional[str] = Field(default=None, description="id")
     name: Optional[str] = Field(default=None, description="name")
     website_url: Optional[str] = Field(default=None, description="website_url")
     blog_url: Optional[str] = Field(default=None, description="blog_url")
@@ -34,7 +30,7 @@ class Organization(BaseModel):
     linkedin_url: Optional[str] = Field(default=None, description="linkedin_url")
     twitter_url: Optional[str] = Field(default=None, description="twitter_url")
     facebook_url: Optional[str] = Field(default=None, description="facebook_url")
-    primary_phone: Optional[PrimaryPhone] = Field(default=None, description="primary_phone")
+    primary_phone: Optional[Dict[str, Any]] = Field(default=None, description="primary_phone - Apollo returns {} when no phone data")
     languages: Optional[List[str]] = Field(default=None, description="languages")
     alexa_ranking: Optional[int] = Field(default=0, description="alexa_ranking")
     phone: Optional[str] = Field(default=None, description="phone")
@@ -53,10 +49,11 @@ class Organization(BaseModel):
     intent_signal_account: Optional[str] = Field(default=None, description="intent_signal_account")
 
 class Pagination(BaseModel):
-    page: int = Field(default=0, description="page")
-    per_page: int = Field(default=0, description="per_page")
-    total_entries: int = Field(default=0, description="total_entries")
-    total_pages: int = Field(default=0, description="total_pages")
+    """Apollo may omit pagination fields."""
+    page: Optional[int] = Field(default=0, description="page")
+    per_page: Optional[int] = Field(default=0, description="per_page")
+    total_entries: Optional[int] = Field(default=0, description="total_entries")
+    total_pages: Optional[int] = Field(default=0, description="total_pages")
 
 class OrganizationSearchResponse(BaseModel):
     breadcrumbs: Optional[List[Breadcrumb]] = Field(default=None, description="breadcrumbs")
