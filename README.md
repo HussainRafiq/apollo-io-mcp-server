@@ -6,19 +6,26 @@ This project provides an MCP server that exposes the Apollo.io API functionaliti
 
 The project consists of the following main components:
 
-- `apollo_client.py`: Defines the `ApolloClient` class, which is used to interact with the Apollo.io API. It includes methods for people enrichment, organization enrichment, people search, organization search, and organization job postings.
-- `server.py`: Defines the FastMCP server, which exposes the Apollo.io API functionalities as tools. It uses the `ApolloClient` class defined in `apollo_client.py` to interact with the API.
-- `apollo/`: Contains the data models for the Apollo.io API, such as `PeopleEnrichmentQuery`, `OrganizationEnrichmentQuery`, `PeopleSearchQuery`, `OrganizationSearchQuery`, and `OrganizationJobPostingsQuery`.
+- `apollo_client.py`: Defines the `ApolloClient` class for interacting with the Apollo.io API. Uses query params (not JSON body) for POST endpoints per [Apollo API docs](https://docs.apollo.io/reference/authentication).
+- `server.py`: Defines the FastMCP server exposing Apollo.io API as MCP tools.
+- `apollo/`: Data models for the Apollo.io API.
 
 ## Functionalities
 
-The following functionalities are exposed as MCP tools:
+MCP tools aligned with [Apollo API Reference](https://docs.apollo.io/reference/authentication):
 
--   `people_enrichment`: Use the People Enrichment endpoint to enrich data for 1 person.
--   `organization_enrichment`: Use the Organization Enrichment endpoint to enrich data for 1 company.
--   `people_search`: Use the People Search endpoint to find people.
--   `organization_search`: Use the Organization Search endpoint to find organizations.
--   `organization_job_postings`: Use the Organization Job Postings endpoint to find job postings for a specific organization.
+**Enrichment**
+- `people_enrichment`: Enrich data for 1 person.
+- `bulk_people_enrichment`: Enrich up to 10 people in one call.
+- `organization_enrichment`: Enrich data for 1 company.
+- `bulk_organization_enrichment`: Enrich up to 10 companies by domain.
+
+**Search**
+- `people_search`: People API Search (no credits, no emails/phones). Uses `/mixed_people/api_search`.
+- `organization_search`: Organization Search. Uses `/mixed_companies/search`.
+- `organization_job_postings`: Job postings for an organization.
+- `get_organization`: Complete organization info by ID (requires master API key).
+- `news_articles_search`: News articles related to companies.
 
 ## Usage
 
@@ -32,11 +39,13 @@ To use this MCP server, you need to:
 
 The `apollo/` directory contains the data models for the Apollo.io API. These models are used to define the input and output of the MCP tools.
 
-- `apollo/people.py`: Defines the data models for the People Enrichment endpoint.
-- `apollo/organization.py`: Defines the data models for the Organization Enrichment endpoint.
-- `apollo/people_search.py`: Defines the data models for the People Search endpoint.
-- `apollo/organization_search.py`: Defines the data models for the Organization Search endpoint.
-- `apollo/organization_job_postings.py`: Defines the data models for the Organization Job Postings endpoint.
+- `apollo/people.py`: People Enrichment models.
+- `apollo/organization.py`: Organization Enrichment models.
+- `apollo/people_search.py`: People API Search models.
+- `apollo/organization_search.py`: Organization Search models.
+- `apollo/organization_job_postings.py`: Organization Job Postings models.
+- `apollo/news_articles_search.py`: News Articles Search models.
+- `apollo/bulk_enrichment.py`: Bulk People/Organization Enrichment models.
 
 ## Testing
 

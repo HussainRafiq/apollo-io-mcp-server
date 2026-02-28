@@ -30,7 +30,7 @@ def _organization_search_params(query: OrganizationSearchQuery) -> Dict[str, Any
 
 
 def _people_search_params(query: PeopleSearchQuery) -> Dict[str, Any]:
-    """Build query params for Apollo mixed_people/search (expects query string, not JSON body)."""
+    """Build query params for Apollo mixed_people/api_search (expects query string, not JSON body)."""
     raw = query.model_dump(exclude_none=True)
     array_keys = {
         "person_titles",
@@ -46,6 +46,24 @@ def _people_search_params(query: PeopleSearchQuery) -> Dict[str, Any]:
     for key, value in raw.items():
         if key in array_keys and isinstance(value, list):
             params[f"{key}[]"] = value
+        else:
+            params[key] = value
+    return params
+
+
+def _news_articles_search_params(query: NewsArticlesSearchQuery) -> Dict[str, Any]:
+    """Build query params for Apollo news_articles/search."""
+    raw = query.model_dump(exclude_none=True)
+    params: Dict[str, Any] = {}
+    for key, value in raw.items():
+        if key == "organization_ids":
+            params["organization_ids[]"] = value
+        elif key == "categories":
+            params["categories[]"] = value
+        elif key == "published_at_min":
+            params["published_at[min]"] = value
+        elif key == "published_at_max":
+            params["published_at[max]"] = value
         else:
             params[key] = value
     return params
@@ -95,11 +113,11 @@ class ApolloClient:
 
     async def people_search(self, query: PeopleSearchQuery) -> Optional[PeopleSearchResponse]:
         """
-        Use the People Search endpoint to find people.
-        https://docs.apollo.io/reference/people-search
+        Use the People API Search endpoint to find net new people. No credits, no emails/phones.
+        https://docs.apollo.io/reference/people-api-search
         Apollo expects query string parameters (not JSON body) for this POST endpoint.
         """
-        url = f"{self.base_url}/mixed_people/search"
+        url = f"{self.base_url}/mixed_people/api_search"
         params = _people_search_params(query)
         async with httpx.AsyncClient() as client:
             response = await client.post(url, params=params, headers=self.headers)
@@ -136,6 +154,76 @@ class ApolloClient:
             response = await client.get(url, headers=self.headers)
             if response.status_code == 200:
                 return OrganizationJobPostingsResponse(**response.json())
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+
+    async def get_organization(self, organization_id: str) -> Optional[dict]:
+        """
+        Get complete organization info by ID. Requires master API key.
+        https://docs.apollo.io/reference/get-complete-organization-info
+        """
+        url = f"{self.base_url}/organizations/{organization_id}"
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+
+    async def news_articles_search(self, query: NewsArticlesSearchQuery) -> Optional[NewsArticlesSearchResponse]:
+        """
+        Search news articles related to companies. Consumes credits.
+        https://docs.apollo.io/reference/news-articles-search
+        """
+        url = f"{self.base_url}/news_articles/search"
+        params = _news_articles_search_params(query)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, params=params, headers=self.headers)
+            if response.status_code == 200:
+                return NewsArticlesSearchResponse(**response.json())
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+
+    async def bulk_people_enrichment(
+        self,
+        body: BulkPeopleEnrichmentRequest,
+        query: Optional[BulkPeopleEnrichmentQuery] = None,
+    ) -> Optional[dict]:
+        """
+        Enrich up to 10 people in a single call. Consumes credits.
+        https://docs.apollo.io/reference/bulk-people-enrichment
+        """
+        url = f"{self.base_url}/people/bulk_match"
+        params = query.model_dump(exclude_none=True) if query else {}
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                params=params,
+                json=body.model_dump(),
+                headers=self.headers,
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"Error: {response.status_code} - {response.text}")
+                return None
+
+    async def bulk_organization_enrichment(
+        self, query: BulkOrganizationEnrichmentQuery
+    ) -> Optional[dict]:
+        """
+        Enrich up to 10 organizations by domain. Consumes credits.
+        https://docs.apollo.io/reference/bulk-organization-enrichment
+        """
+        url = f"{self.base_url}/organizations/bulk_enrich"
+        params = {"domains[]": query.domains}
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, params=params, headers=self.headers)
+            if response.status_code == 200:
+                return response.json()
             else:
                 print(f"Error: {response.status_code} - {response.text}")
                 return None

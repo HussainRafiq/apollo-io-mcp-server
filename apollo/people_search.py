@@ -221,6 +221,7 @@ class Pagination(BaseModel):
 
 class PeopleSearchResponse(BaseModel):
     # breadcrumbs: Optional[List[Breadcrumb]] = Field(default=None, description="breadcrumbs")
+    total_entries: Optional[int] = Field(default=None, description="Total people matching search (People API Search)")
     partial_results_only: Optional[bool] = Field(default=None, description="partial_results_only")
     has_join: Optional[bool] = Field(default=None, description="has_join")
     disable_eu_prospecting: Optional[bool] = Field(default=None, description="disable_eu_prospecting")
